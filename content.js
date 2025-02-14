@@ -1,33 +1,33 @@
-// Function to generate a rich unique identifier for an element
+// Function to generate a rich unique selector for an element
 function getUniqueSelector(element) {
     if (!element) return null;
 
-    let selector = element.tagName.toLowerCase(); // Start with tag name
+    let selector = element.tagName.toLowerCase();
 
     if (element.id) {
-        return `#${element.id}`; // If the element has an ID, it's unique
+        return `#${element.id}`; // If ID exists, use it
     }
 
     if (element.className) {
-        let classSelector = "." + element.className.trim().replace(/\s+/g, "."); // Convert class names to CSS selector
+        let classSelector = "." + element.className.trim().replace(/\s+/g, ".");
         selector += classSelector;
     }
 
-    // Add nth-child position to differentiate between similar elements
     let parent = element.parentElement;
     if (parent) {
         let children = Array.from(parent.children);
-        let index = children.indexOf(element) + 1; // nth-child is 1-based
+        let index = children.indexOf(element) + 1;
         selector += `:nth-child(${index})`;
     }
 
     return selector;
 }
 
-// Event listener for mouse selection
+// Event listener for text selection
 document.addEventListener("mouseup", (event) => {
     setTimeout(() => {  
-        let selectedText = window.getSelection().toString().trim();
+        let selection = window.getSelection();
+        let selectedText = selection.toString().trim();
         let existingTooltip = document.getElementById("ai-tooltip");
 
         if (!selectedText) {
@@ -49,7 +49,7 @@ document.addEventListener("mouseup", (event) => {
         tooltip.style.gap = "5px";
         tooltip.style.zIndex = "9999";
 
-        let rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+        let rect = selection.getRangeAt(0).getBoundingClientRect();
         tooltip.style.left = `${window.scrollX + rect.left}px`;
         tooltip.style.top = `${window.scrollY + rect.bottom + 5}px`;
 
@@ -63,16 +63,17 @@ document.addEventListener("mouseup", (event) => {
         button.style.borderRadius = "4px";
 
         button.addEventListener("click", (e) => {
-            e.stopPropagation(); 
+            e.stopPropagation();
 
             button.innerText = "Simplifying...";
             button.style.background = "#ff9800";
             button.style.cursor = "wait";
 
-            let parentElement = window.getSelection().anchorNode.parentElement;
-            let identifier = getUniqueSelector(parentElement); // Generate a unique identifier
+            let range = selection.getRangeAt(0);
+            let parentElement = range.commonAncestorContainer.parentElement;
+            let identifier = getUniqueSelector(parentElement); // Capture exact selector
 
-            processText(selectedText, "simplify", tooltip, button, identifier);
+            processText(selectedText, "simplify", tooltip, button, identifier, range);
         });
 
         tooltip.appendChild(button);
@@ -80,21 +81,23 @@ document.addEventListener("mouseup", (event) => {
     }, 50);
 });
 
-function processText(text, type, tooltip, button, identifier) {
+function processText(text, type, tooltip, button, identifier, range) {
     console.log("Sending request to background.js:", { text, type, identifier });
 
-    chrome.runtime.sendMessage({ action: "process_text", text, type, identifier }, (response) => {
+    chrome.runtime.sendMessage({ action: "process_text", text, type }, (response) => {
         if (chrome.runtime.lastError) {
             console.error("Message error:", chrome.runtime.lastError.message);
             return;
         }
         console.log("Received response from background.js:", response);
 
-        if (response.result && identifier) {
-            let targetElement = document.querySelector(identifier);
-            if (targetElement) {
-                targetElement.innerText = response.result; // Replace text in the exact element
-            }
+        if (response.result && range) {
+            let span = document.createElement("span");
+            span.innerText = response.result;
+            span.style.backgroundColor = "#fffa90"; // Highlight replaced text
+
+            range.deleteContents();
+            range.insertNode(span);
         }
 
         button.innerText = "Simplify";

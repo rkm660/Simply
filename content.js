@@ -1,29 +1,3 @@
-// Function to generate a rich unique selector for an element
-function getUniqueSelector(element) {
-    if (!element) return null;
-
-    let selector = element.tagName.toLowerCase();
-
-    if (element.id) {
-        return `#${element.id}`; // If ID exists, use it
-    }
-
-    if (element.className) {
-        let classSelector = "." + element.className.trim().replace(/\s+/g, ".");
-        selector += classSelector;
-    }
-
-    let parent = element.parentElement;
-    if (parent) {
-        let children = Array.from(parent.children);
-        let index = children.indexOf(element) + 1;
-        selector += `:nth-child(${index})`;
-    }
-
-    return selector;
-}
-
-// Event listener for text selection
 document.addEventListener("mouseup", (event) => {
     setTimeout(() => {  
         let selection = window.getSelection();
@@ -70,10 +44,8 @@ document.addEventListener("mouseup", (event) => {
             button.style.cursor = "wait";
 
             let range = selection.getRangeAt(0);
-            let parentElement = range.commonAncestorContainer.parentElement;
-            let identifier = getUniqueSelector(parentElement); // Capture exact selector
 
-            processText(selectedText, "simplify", tooltip, button, identifier, range);
+            processText(selectedText, "simplify", tooltip, button, range);
         });
 
         tooltip.appendChild(button);
@@ -81,8 +53,8 @@ document.addEventListener("mouseup", (event) => {
     }, 50);
 });
 
-function processText(text, type, tooltip, button, identifier, range) {
-    console.log("Sending request to background.js:", { text, type, identifier });
+function processText(text, type, tooltip, button, range) {
+    console.log("Sending request to background.js:", { text, type });
 
     chrome.runtime.sendMessage({ action: "process_text", text, type }, (response) => {
         if (chrome.runtime.lastError) {
@@ -98,12 +70,16 @@ function processText(text, type, tooltip, button, identifier, range) {
 
             range.deleteContents();
             range.insertNode(span);
+
+            // Synchronously update button text
+            button.innerText = "Simplified!";
+            button.style.background = "#28a745"; // Green for success
+            button.style.cursor = "pointer";
+
+            // Remove tooltip after a short delay
+            setTimeout(() => {
+                if (tooltip) tooltip.remove();
+            }, 800);
         }
-
-        button.innerText = "Simplify";
-        button.style.background = "#007BFF";
-        button.style.cursor = "pointer";
-
-        if (tooltip) tooltip.remove();
     });
 }

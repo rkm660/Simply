@@ -1,11 +1,11 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "process_text" && request.type === "simplify") {
-        console.log("Sending request to API:", request.text, "Type:", request.type, "Identifier:", request.identifier);
+        console.log("Sending request to API:", request.text, "Type:", request.type);
 
-        fetch("http://127.0.0.1:5002/process", {
+        fetch("http://127.0.0.1:5003/process", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: request.text, type: "simplify", identifier: request.identifier })
+            body: JSON.stringify({ text: request.text, type: "simplify" }) // Removed identifier
         })
         .then(response => response.json())
         .then(data => {
@@ -17,6 +17,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ error: error.toString() });
         });
 
-        return true;
+        return true; // Keep sendResponse alive for async response
     }
 });

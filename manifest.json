@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "AI Text Simplifier",
+    "name": "Simply",
     "version": "1.0",
     "description": "Highlight text and simplify it with AI.",
     "permissions": [
@@ -31,5 +31,6 @@
                 "content.js"
             ]
         }
-    ]
+    ],
+    "options_page": "options.html"
 }
